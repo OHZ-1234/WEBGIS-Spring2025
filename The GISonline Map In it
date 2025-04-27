@@ -11,8 +11,9 @@
 </head>
 <body>
   <header>
-    <h1>WebGIS Lab 8</h1>
-    <p>College Station Layers of Data Combination and Comparisons – Created by Hu "Oliver" Zhao</p>
+    <h1>WebGIS Spring 2025 Semester Project</h1>
+    <p>College Station Layers of Data Combination and Comparisons – Home2Hub: Connecting Housing to Transit in College Station</p>
+    <p>Hannah Ward, Oliver Zhao, Pedro Granados, Tolu Sokoya</p>
   </header>
   <iframe src="https://arcg.is/zL9HC0" allowfullscreen></iframe>
 </body>
