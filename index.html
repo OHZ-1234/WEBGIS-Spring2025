@@ -140,22 +140,35 @@ fetch('Apartments.geojson')
   });
 
 // --- US Census Blocks Layer ---
+function getCensusColor(d) {
+  return d > 1852 ? '#2171b5' :
+         d > 595 ? '#9ecae1' :
+         d > 178 ? '#fdd0a2' :
+                   '#fc9272';
+}
+
 var censusBlocksLayer = L.esri.featureLayer({
   url: 'https://services5.arcgis.com/s91b2wxhO15FkWh5/arcgis/rest/services/BRAZOS_COUNTY_CENSUS_BLOCKS/FeatureServer/0',
-  style: function () {
+  style: function (feature) {
+    var pop = feature.properties && feature.properties.POP100;
     return {
-      color: 'green',
-      weight: 1,
-      fillOpacity: 0.2
+      fillColor: getCensusColor(pop),
+      color: 'black',
+      weight: 0.5,
+      opacity: 1,
+      fillOpacity: 0.5
     };
   },
   onEachFeature: function (feature, layer) {
-    if (feature.properties && feature.properties.GEOID10) {
-      layer.bindPopup("<b>Census Block ID:</b> " + feature.properties.GEOID10);
+    if (feature.properties && feature.properties.GEOID10 && feature.properties.POP100 !== undefined) {
+      layer.bindPopup(
+        "<b>Census Block ID:</b> " + feature.properties.GEOID10 +
+        "<br><b>Population (POP100):</b> " + feature.properties.POP100
+      );
     }
   }
 });
-  
+
 // Layer Control
 var overlayMaps = {
   "Bus Stops": busStopsLayer,
