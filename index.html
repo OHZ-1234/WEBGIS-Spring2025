@@ -139,14 +139,34 @@ fetch('Apartments.geojson')
     apartmentsLayer.addData(data);
   });
 
+// --- US Census Blocks Layer ---
+var censusBlocksLayer = L.esri.featureLayer({
+  url: 'https://services5.arcgis.com/s91b2wxhO15FkWh5/arcgis/rest/services/BRAZOS_COUNTY_CENSUS_BLOCKS/FeatureServer/0',
+  style: function () {
+    return {
+      color: 'green',
+      weight: 1,
+      fillOpacity: 0.2
+    };
+  },
+  onEachFeature: function (feature, layer) {
+    if (feature.properties && feature.properties.GEOID10) {
+      layer.bindPopup("<b>Census Block ID:</b> " + feature.properties.GEOID10);
+    }
+  }
+});
+  
 // Layer Control
 var overlayMaps = {
   "Bus Stops": busStopsLayer,
   "Bus Routes": busRoutesLayer,
   "Foreign Share (2016)": foreignShareLayer,
-  "Apartments": apartmentsLayer
+  "Apartments": apartmentsLayer,
+  "US Census Blocks": censusBlocksLayer  
 };
 
+
+  
 L.control.layers(null, overlayMaps, { collapsed: false }).addTo(map);
 
 // Add all layers to map initially
@@ -154,9 +174,11 @@ busStopsLayer.addTo(map);
 busRoutesLayer.addTo(map);
 foreignShareLayer.addTo(map);
 apartmentsLayer.addTo(map);
+censusBlocksLayer.addTo(map);
+
 
 // Fit bounds
-var allLayersGroup = L.featureGroup([busStopsLayer, busRoutesLayer, foreignShareLayer, apartmentsLayer]);
+var allLayersGroup = L.featureGroup([busStopsLayer, busRoutesLayer, foreignShareLayer, apartmentsLayer, censusBlocksLayer]);
 map.fitBounds(allLayersGroup.getBounds());
 
 // --- Dynamic Foreign Share Legend ---
