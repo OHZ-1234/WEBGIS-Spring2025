@@ -160,10 +160,9 @@ var censusBlocksLayer = L.esri.featureLayer({
     };
   },
   onEachFeature: function (feature, layer) {
-    if (feature.properties && feature.properties.GEOID10 && feature.properties.POP100 !== undefined) {
+    if (feature.properties && feature.properties.POP100 !== undefined) {
       layer.bindPopup(
-        "<b>Census Block ID:</b> " + feature.properties.GEOID10 +
-        "<br><b>Population (POP100):</b> " + feature.properties.POP100
+        "<b>Population:</b> " + feature.properties.POP100
       );
     }
   }
