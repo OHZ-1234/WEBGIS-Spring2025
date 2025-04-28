@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>College Station Bus Map</title>
+  <title>College Station Bus Transit Map</title>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
@@ -9,31 +9,60 @@
   <script src="https://unpkg.com/esri-leaflet/dist/esri-leaflet.js"></script>
 </head>
 <body>
-<div id="map" style="height: 90vh;"></div>
+<div id="map" style="height: 100vh;"></div>
 
 <script>
+  // first step of making the map
   var map = L.map('map').setView([30.61, -96.34], 13);
 
-  // base map
+  // add basemap from OpenStreetMap
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
 
-  // TAMU BusStops
-  var busStops = L.esri.featureLayer({
-    url: 'https://services1.arcgis.com/qr14biwnHA6Vis6l/arcgis/rest/services/TAMU_Bus_Routes_with_STC_Visualization_of_Stop_Times_WFL1/FeatureServer/0',
-    style: function () {
-      return { color: 'blue' };
-    }
-  }).addTo(map);
+  // define the icon
+  var smallIcon = L.icon({
+    iconUrl: 'https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png',
+    iconSize: [15, 24],    
+    iconAnchor: [7, 24],   
+    popupAnchor: [0, -24]
+  });
 
-  // TAMU BusRoutes
-  var busRoutes = L.esri.featureLayer({
+  // add the BusStops
+  var busStopsLayer = L.esri.featureLayer({
+    url: 'https://services1.arcgis.com/qr14biwnHA6Vis6l/arcgis/rest/services/TAMU_Bus_Routes_with_STC_Visualization_of_Stop_Times_WFL1/FeatureServer/0',
+    pointToLayer: function (geojson, latlng) {
+      return L.marker(latlng, { icon: smallIcon });
+    },
+    onEachFeature: function (feature, layer) {
+      // add the pop ups
+      if (feature.properties && feature.properties.StopName) {
+        layer.bindPopup("<b>Bus Stop:</b> " + feature.properties.StopName);
+      } else {
+        layer.bindPopup("Bus Stop");
+      }
+    }
+  });
+
+  // add BusRoutes
+  var busRoutesLayer = L.esri.featureLayer({
     url: 'https://services1.arcgis.com/qr14biwnHA6Vis6l/arcgis/rest/services/TAMU_Bus_Routes_with_STC_Visualization_of_Stop_Times_WFL1/FeatureServer/1',
     style: function () {
-      return { color: 'red' };
+      return { color: 'red', weight: 2 };
     }
-  }).addTo(map);
+  });
+
+  // add together
+  busStopsLayer.addTo(map);
+  busRoutesLayer.addTo(map);
+
+  // layers in control
+  var overlayMaps = {
+    "Bus Stops": busStopsLayer,
+    "Bus Routes": busRoutesLayer
+  };
+
+  L.control.layers(null, overlayMaps, { collapsed: false }).addTo(map);
 
 </script>
 
