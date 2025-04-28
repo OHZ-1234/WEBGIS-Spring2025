@@ -1,14 +1,23 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <title>College Station Transit and Housing Map</title>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://unpkg.com/esri-leaflet/dist/esri-leaflet.js"></script>
-  <style>
 
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+    #map {
+      height: 100%;
+    }
     .legend {
       background: white;
       padding: 10px;
@@ -27,125 +36,184 @@
     }
   </style>
 </head>
+
 <body>
-<div id="map" style="height: 100vh;"></div>
+<div id="map"></div>
 
 <script>
-  
-  var map = L.map('map').setView([30.61, -96.34], 13);
+// Initialize the map
+var map = L.map('map').setView([30.61, -96.34], 13);
 
-  
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors'
-  }).addTo(map);
+// Add OpenStreetMap tile layer
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
 
+// Define a smaller custom marker icon
+var smallIcon = L.icon({
+  iconUrl: 'https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png',
+  iconSize: [15, 24],
+  iconAnchor: [7, 24],
+  popupAnchor: [0, -24]
+});
 
-  var smallIcon = L.icon({
-    iconUrl: 'https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png',
-    iconSize: [15, 24],
-    iconAnchor: [7, 24],
-    popupAnchor: [0, -24]
-  });
-
-  // --- Bus Stops Feature Layer
-  var busStopsLayer = L.esri.featureLayer({
-    url: 'https://services1.arcgis.com/qr14biwnHA6Vis6l/arcgis/rest/services/TAMU_Bus_Routes_with_STC_Visualization_of_Stop_Times_WFL1/FeatureServer/0',
-    pointToLayer: function (geojson, latlng) {
-      return L.marker(latlng, { icon: smallIcon });
-    },
-    onEachFeature: function (feature, layer) {
-      if (feature.properties && feature.properties.StopName) {
-        layer.bindPopup(
-          "<b>Bus Stop Name:</b> " + feature.properties.StopName
-        );
-      }
+// Bus Stops Layer
+var busStopsLayer = L.esri.featureLayer({
+  url: 'https://services1.arcgis.com/qr14biwnHA6Vis6l/arcgis/rest/services/TAMU_Bus_Routes_with_STC_Visualization_of_Stop_Times_WFL1/FeatureServer/0',
+  pointToLayer: function (geojson, latlng) {
+    return L.marker(latlng, { icon: smallIcon });
+  },
+  onEachFeature: function (feature, layer) {
+    if (feature.properties && feature.properties.StopName) {
+      layer.bindPopup("<b>Bus Stop Name:</b> " + feature.properties.StopName);
     }
-  });
+  }
+});
 
-  // --- Bus Routes Feature Layer
-  var busRoutesLayer = L.esri.featureLayer({
-    url: 'https://services1.arcgis.com/qr14biwnHA6Vis6l/arcgis/rest/services/TAMU_Bus_Routes_with_STC_Visualization_of_Stop_Times_WFL1/FeatureServer/1',
-    style: function () {
-      return { color: 'red', weight: 2 };
+// Bus Routes Layer
+var busRoutesLayer = L.esri.featureLayer({
+  url: 'https://services1.arcgis.com/qr14biwnHA6Vis6l/arcgis/rest/services/TAMU_Bus_Routes_with_STC_Visualization_of_Stop_Times_WFL1/FeatureServer/1',
+  style: function () {
+    return { color: 'red', weight: 2 };
+  }
+});
+
+// Foreign Share Layer
+var foreignShareLayer = L.geoJSON(null, {
+  style: function(feature) {
+    return {
+      color: 'purple',
+      weight: 1,
+      fillColor: 'purple',
+      fillOpacity: 0.3
+    };
+  },
+  onEachFeature: function (feature, layer) {
+    if (feature.properties && feature.properties.foreign_share2016) {
+      layer.bindPopup(
+        "<b>Foreign Share (2016):</b> " + (feature.properties.foreign_share2016 * 100).toFixed(2) + "%"
+      );
     }
-  });
+  }
+});
 
-  // --- Foreign Share GeoJSON
-  var foreignShareLayer = L.geoJSON(null, {
-    style: { color: 'purple', weight: 1, fillOpacity: 0.4 },
-    onEachFeature: function (feature, layer) {
-      if (feature.properties && feature.properties.foreign_share2016) {
-        layer.bindPopup(
-          "<b>Foreign Share 2016:</b> " + (feature.properties.foreign_share2016 * 100).toFixed(2) + "%"
-        );
-      }
-    }
-  });
-
-  fetch('foreign_share.geojson')
-    .then(response => response.json())
-    .then(data => {
-      foreignShareLayer.addData(data);
+// Apartments Layer
+var apartmentsLayer = L.geoJSON(null, {
+  pointToLayer: function (feature, latlng) {
+    return L.circleMarker(latlng, {
+      radius: 5,
+      fillColor: "purple",
+      color: "purple",
+      weight: 1,
+      opacity: 1,
+      fillOpacity: 0.6
     });
-
-  // --- Apartments GeoJSON
-  var apartmentsLayer = L.geoJSON(null, {
-    pointToLayer: function (feature, latlng) {
-      return L.circleMarker(latlng, {
-        radius: 5,
-        fillColor: "green",
-        color: "green",
-        weight: 1,
-        opacity: 1,
-        fillOpacity: 0.6
-      });
-    },
-    onEachFeature: function (feature, layer) {
-      if (feature.properties && feature.properties.name) {
-        layer.bindPopup(
-          "<b>Apartment Name:</b> " + feature.properties.name
-        );
-      }
+  },
+  style: function (feature) {
+    return {
+      color: "purple",
+      weight: 1,
+      fillColor: "purple",
+      fillOpacity: 0.4
+    };
+  },
+  onEachFeature: function (feature, layer) {
+    if (feature.properties && feature.properties.name) {
+      layer.bindPopup("<b>Apartment Name:</b> " + feature.properties.name);
     }
+  }
+});
+
+// Load GeoJSON data
+fetch('foreign_share.geojson')
+  .then(response => response.json())
+  .then(data => {
+    foreignShareLayer.addData(data);
   });
 
-  fetch('Apartments.geojson')
-    .then(response => response.json())
-    .then(data => {
-      apartmentsLayer.addData(data);
-    });
+fetch('Apartments.geojson')
+  .then(response => response.json())
+  .then(data => {
+    apartmentsLayer.addData(data);
+  });
 
+// Group all layers together
+var allLayersGroup = L.featureGroup([
+  busStopsLayer,
+  busRoutesLayer,
+  foreignShareLayer,
+  apartmentsLayer
+]);
 
-  var overlayMaps = {
-    "Bus Stops": busStopsLayer,
-    "Bus Routes": busRoutesLayer,
-    "Foreign Share (2016)": foreignShareLayer,
-    "Apartments": apartmentsLayer
-  };
+// Add layers to map
+busStopsLayer.addTo(map);
+busRoutesLayer.addTo(map);
+foreignShareLayer.addTo(map);
+apartmentsLayer.addTo(map);
 
-  L.control.layers(null, overlayMaps, { collapsed: false }).addTo(map);
+// Fit map to show all layers
+map.fitBounds(allLayersGroup.getBounds());
 
+// Layer Control
+var overlayMaps = {
+  "Bus Stops": busStopsLayer,
+  "Bus Routes": busRoutesLayer,
+  "Foreign Share (2016)": foreignShareLayer,
+  "Apartments": apartmentsLayer
+};
 
-  busStopsLayer.addTo(map);
-  busRoutesLayer.addTo(map);
-  foreignShareLayer.addTo(map);
-  apartmentsLayer.addTo(map);
+L.control.layers(null, overlayMaps, { collapsed: false }).addTo(map);
 
+// Create the Legend
+var legend = L.control({position: 'bottomleft'});
 
-  var legend = L.control({position: 'bottomleft'});
+legend.onAdd = function (map) {
+  var div = L.DomUtil.create('div', 'legend');
+  div.innerHTML += "<i style='background: blue'></i> Bus Stops<br>";
+  div.innerHTML += "<i style='background: red'></i> Bus Routes<br>";
+  div.innerHTML += "<i style='background: purple'></i> Foreign Share<br>";
+  div.innerHTML += "<i style='background: purple'></i> Apartments<br>";
+  return div;
+};
 
-  legend.onAdd = function (map) {
-    var div = L.DomUtil.create('div', 'legend');
-    div.innerHTML += "<i style='background: blue'></i> Bus Stops<br>";
-    div.innerHTML += "<i style='background: red'></i> Bus Routes<br>";
-    div.innerHTML += "<i style='background: purple'></i> Foreign Share<br>";
-    div.innerHTML += "<i style='background: green'></i> Apartments<br>";
-    return div;
-  };
+legend.addTo(map);
 
-  legend.addTo(map);
+// Opacity Slider Control
+var opacityControl = L.control({position: 'topright'});
 
+opacityControl.onAdd = function(map) {
+  var div = L.DomUtil.create('div', 'legend');
+  div.innerHTML = '<label><b>Layer Opacity</b><br><input id="opacitySlider" type="range" min="0" max="1" step="0.05" value="1"></label>';
+  div.style.backgroundColor = 'white';
+  div.style.padding = '10px';
+  div.style.borderRadius = '5px';
+  div.style.boxShadow = '0 0 15px rgba(0,0,0,0.2)';
+  return div;
+};
+
+opacityControl.addTo(map);
+
+// Handle opacity change
+document.addEventListener('DOMContentLoaded', function() {
+  var slider = document.getElementById('opacitySlider');
+  slider.addEventListener('input', function() {
+    var opacity = parseFloat(this.value);
+    apartmentsLayer.setStyle({fillOpacity: opacity});
+    foreignShareLayer.setStyle({fillOpacity: opacity});
+  });
+});
 </script>
+
+<!-- Bottom Right GitHub Repository Link -->
+<div style="position: fixed; bottom: 20px; right: 20px; background: white; padding: 12px 20px; border-radius: 8px; font-size: 14px; box-shadow: 0 0 10px rgba(0,0,0,0.3); z-index: 1000;">
+  <div style="text-align: center;">
+    <div style="font-weight: bold; margin-bottom: 5px;">View source on GitHub</div>
+    <a href="https://github.com/OHZ-1234/WEBGIS-Spring2025" target="_blank" style="text-decoration: none; color: #004c93; font-weight: bold;">
+      Built by Hannah Ward, Hu “Oliver” Zhao, Pedro Granados, Tolu Sokoya | View Project Repository
+    </a>
+  </div>
+</div>
 
 </body>
 </html>
+
