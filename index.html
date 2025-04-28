@@ -54,19 +54,19 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
 
-// Custom marker
-var smallIcon = L.icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png',
-  iconSize: [15, 24],
-  iconAnchor: [7, 24],
-  popupAnchor: [0, -24]
+// Custom purple marker for Bus Stops
+var purpleIcon = L.icon({
+  iconUrl: 'https://chart.googleapis.com/chart?chst=d_map_pin_icon&chld=bus|800080',
+  iconSize: [21, 34],
+  iconAnchor: [10, 34],
+  popupAnchor: [0, -34]
 });
 
 // Bus Stops Layer
 var busStopsLayer = L.esri.featureLayer({
   url: 'https://services1.arcgis.com/qr14biwnHA6Vis6l/arcgis/rest/services/TAMU_Bus_Routes_with_STC_Visualization_of_Stop_Times_WFL1/FeatureServer/0',
   pointToLayer: function (geojson, latlng) {
-    return L.marker(latlng, { icon: smallIcon });
+    return L.marker(latlng, { icon: purpleIcon });
   },
   onEachFeature: function (feature, layer) {
     if (feature.properties && feature.properties.StopName) {
@@ -83,7 +83,7 @@ var busRoutesLayer = L.esri.featureLayer({
   }
 });
 
-// Apartments Layer (purple)
+// Apartments Layer
 var apartmentsLayer = L.geoJSON(null, {
   pointToLayer: function (feature, latlng) {
     return L.circleMarker(latlng, {
@@ -102,7 +102,7 @@ var apartmentsLayer = L.geoJSON(null, {
   }
 });
 
-// Foreign Share Layer with color scale
+// Foreign Share Layer
 function getColor(d) {
   return d > 0.089 ? '#bd0026' :
          d > 0.066 ? '#fd8d3c' :
@@ -127,7 +127,7 @@ var foreignShareLayer = L.geoJSON(null, {
   }
 });
 
-// Load GeoJSON
+// Load GeoJSON files
 fetch('foreign_share.geojson')
   .then(response => response.json())
   .then(data => {
@@ -146,7 +146,7 @@ busRoutesLayer.addTo(map);
 foreignShareLayer.addTo(map);
 apartmentsLayer.addTo(map);
 
-// Create groups
+// Overlay Layer Control
 var overlayMaps = {
   "Bus Stops": busStopsLayer,
   "Bus Routes": busRoutesLayer,
@@ -156,11 +156,11 @@ var overlayMaps = {
 
 var layerControl = L.control.layers(null, overlayMaps, {collapsed: false}).addTo(map);
 
-// Adjust map to fit all layers
+// Fit all layers
 var allLayersGroup = L.featureGroup([busStopsLayer, busRoutesLayer, foreignShareLayer, apartmentsLayer]);
 map.fitBounds(allLayersGroup.getBounds());
 
-// Create dynamic legend for foreign share
+// Legend
 var legend = L.control({position: 'bottomleft'});
 
 legend.onAdd = function(map) {
@@ -173,20 +173,31 @@ legend.onAdd = function(map) {
   return div;
 };
 
-// Show/Hide legend based on foreignShareLayer
-map.on('overlayadd', function(eventLayer) {
-  if (eventLayer.name === "Foreign Share (2016)") {
+// Only show legend when Foreign Share layer is ON
+function updateLegend() {
+  if (map.hasLayer(foreignShareLayer)) {
     legend.addTo(map);
-  }
-});
-
-map.on('overlayremove', function(eventLayer) {
-  if (eventLayer.name === "Foreign Share (2016)") {
+  } else {
     map.removeControl(legend);
   }
+}
+
+// Initial check
+map.whenReady(updateLegend);
+
+// Update when layer toggled
+map.on('overlayadd', function(e) {
+  if (e.name === "Foreign Share (2016)") {
+    updateLegend();
+  }
+});
+map.on('overlayremove', function(e) {
+  if (e.name === "Foreign Share (2016)") {
+    updateLegend();
+  }
 });
 
-// Opacity Control
+// Opacity Slider
 var opacityControl = L.control({position: 'topright'});
 opacityControl.onAdd = function(map) {
   var div = L.DomUtil.create('div', 'opacity-control');
