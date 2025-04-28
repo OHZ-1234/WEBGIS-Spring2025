@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title>College Station Transit, Housing, and population combined map</title>
+  <title>College Station Transit and Housing Map</title>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -106,7 +106,7 @@ var foreignShareLayer = L.geoJSON(null, {
   }
 });
 
-// Apartments Layer
+// Apartments Layer (fixed as purple circle markers)
 var apartmentsLayer = L.geoJSON(null, {
   pointToLayer: function (feature, latlng) {
     return L.circleMarker(latlng, {
@@ -165,7 +165,7 @@ var overlayMaps = {
 
 L.control.layers(null, overlayMaps, { collapsed: false }).addTo(map);
 
-// Create Custom Legend for Foreign Share
+// Create Legend
 var legend = L.control({position: 'bottomleft'});
 
 legend.onAdd = function (map) {
@@ -227,4 +227,3 @@ document.addEventListener('DOMContentLoaded', function() {
 
 </body>
 </html>
-
