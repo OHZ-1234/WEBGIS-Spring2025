@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title>College Station Transit and Housing Map</title>
+  <title>College Station Transit, Housing, and Foreign Share Population Map</title>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+  
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://unpkg.com/esri-leaflet/dist/esri-leaflet.js"></script>
@@ -44,12 +44,12 @@
 // Initialize the map
 var map = L.map('map').setView([30.61, -96.34], 13);
 
-// Add OpenStreetMap tile layer
+// Add OpenStreetMap base layer
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
 
-// Define a smaller custom marker icon
+// Define small marker icon
 var smallIcon = L.icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png',
   iconSize: [15, 24],
@@ -106,7 +106,7 @@ var foreignShareLayer = L.geoJSON(null, {
   }
 });
 
-// Apartments Layer (fixed as purple circle markers)
+// Apartments Layer
 var apartmentsLayer = L.geoJSON(null, {
   pointToLayer: function (feature, latlng) {
     return L.circleMarker(latlng, {
@@ -125,45 +125,66 @@ var apartmentsLayer = L.geoJSON(null, {
   }
 });
 
-// Load GeoJSON data
-fetch('foreign_share.geojson')
-  .then(response => response.json())
-  .then(data => {
-    foreignShareLayer.addData(data);
-  });
+// Opacity slider always present
+var opacityControl = L.control({position: 'topright'});
 
-fetch('Apartments.geojson')
-  .then(response => response.json())
-  .then(data => {
-    apartmentsLayer.addData(data);
-  });
-
-// Group all layers together
-var allLayersGroup = L.featureGroup([
-  busStopsLayer,
-  busRoutesLayer,
-  foreignShareLayer,
-  apartmentsLayer
-]);
-
-// Add layers to map
-busStopsLayer.addTo(map);
-busRoutesLayer.addTo(map);
-foreignShareLayer.addTo(map);
-apartmentsLayer.addTo(map);
-
-// Fit map to show all layers
-map.fitBounds(allLayersGroup.getBounds());
-
-// Layer Control
-var overlayMaps = {
-  "Bus Stops": busStopsLayer,
-  "Bus Routes": busRoutesLayer,
-  "Foreign Share (2016)": foreignShareLayer,
-  "Apartments": apartmentsLayer
+opacityControl.onAdd = function(map) {
+  var div = L.DomUtil.create('div', 'legend');
+  div.innerHTML = '<label><b>Layer Opacity</b><br><input id="opacitySlider" type="range" min="0" max="1" step="0.05" value="1"></label>';
+  div.style.backgroundColor = 'white';
+  div.style.padding = '10px';
+  div.style.borderRadius = '5px';
+  div.style.boxShadow = '0 0 15px rgba(0,0,0,0.2)';
+  return div;
 };
 
-L.control.layers(null, overlayMaps, { collapsed: false }).addTo(map);
+opacityControl.addTo(map);
+
+// Bind opacity slider immediately
+document.addEventListener('DOMContentLoaded', function() {
+  var slider = document.getElementById('opacitySlider');
+  slider.addEventListener('input', function() {
+    var opacity = parseFloat(this.value);
+    apartmentsLayer.setStyle({ fillOpacity: opacity });
+    foreignShareLayer.setStyle(function(feature) {
+      var value = feature.properties.foreign_share2016;
+      return {
+        fillColor: getForeignShareColor(value),
+        weight: 1,
+        opacity: 1,
+        color: 'black',
+        fillOpacity: opacity
+      };
+    });
+  });
+});
+
+// Load GeoJSON files, then add layers and control
+Promise.all([
+  fetch('foreign_share.geojson').then(res => res.json()),
+  fetch('Apartments.geojson').then(res => res.json())
+]).then(([foreignShareData, apartmentsData]) => {
+  foreignShareLayer.addData(foreignShareData);
+  apartmentsLayer.addData(apartmentsData);
+
+  var allLayersGroup = L.featureGroup([
+    busStopsLayer,
+    busRoutesLayer,
+    foreignShareLayer,
+    apartmentsLayer
+  ]);
+
+  map.fitBounds(allLayersGroup.getBounds());
+
+  var overlayMaps = {
+    "Bus Stops": busStopsLayer,
+    "Bus Routes": busRoutesLayer,
+    "Foreign Share (2016)": foreignShareLayer,
+    "Apartments": apartmentsLayer
+  };
+
+  L.control.layers(null, overlayMaps, { collapsed: false }).addTo(map);
+});
 
 // Create Legend
 var legend = L.control({position: 'bottomleft'});
@@ -179,40 +200,6 @@ legend.onAdd = function (map) {
 };
 
 legend.addTo(map);
-
-// Opacity Slider Control
-var opacityControl = L.control({position: 'topright'});
-
-opacityControl.onAdd = function(map) {
-  var div = L.DomUtil.create('div', 'legend');
-  div.innerHTML = '<label><b>Layer Opacity</b><br><input id="opacitySlider" type="range" min="0" max="1" step="0.05" value="1"></label>';
-  div.style.backgroundColor = 'white';
-  div.style.padding = '10px';
-  div.style.borderRadius = '5px';
-  div.style.boxShadow = '0 0 15px rgba(0,0,0,0.2)';
-  return div;
-};
-
-opacityControl.addTo(map);
-
-// Handle opacity change
-document.addEventListener('DOMContentLoaded', function() {
-  var slider = document.getElementById('opacitySlider');
-  slider.addEventListener('input', function() {
-    var opacity = parseFloat(this.value);
-    apartmentsLayer.setStyle({fillOpacity: opacity});
-    foreignShareLayer.setStyle(function(feature) {
-      var value = feature.properties.foreign_share2016;
-      return {
-        fillColor: getForeignShareColor(value),
-        weight: 1,
-        opacity: 1,
-        color: 'black',
-        fillOpacity: opacity
-      };
-    });
-  });
-});
 </script>
 
 <!-- Bottom Right GitHub Repository Link -->
