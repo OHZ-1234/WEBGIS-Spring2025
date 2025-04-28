@@ -41,30 +41,32 @@
 <div id="map"></div>
 
 <script>
-// Initialize the map
 var map = L.map('map').setView([30.61, -96.34], 13);
 
-// Add OpenStreetMap base layer
+// Tile Layer
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
 
-// Bus Stops as small purple circle markers
+// Small Purple Circle for Bus Stops
+var busStopMarkerOptions = {
+  radius: 5,
+  fillColor: "purple",
+  color: "purple",
+  weight: 1,
+  opacity: 0.7,
+  fillOpacity: 0.5
+};
+
+// Bus Stops Layer
 var busStopsLayer = L.esri.featureLayer({
   url: 'https://services1.arcgis.com/qr14biwnHA6Vis6l/arcgis/rest/services/TAMU_Bus_Routes_with_STC_Visualization_of_Stop_Times_WFL1/FeatureServer/0',
   pointToLayer: function (geojson, latlng) {
-    return L.circleMarker(latlng, {
-      radius: 4,
-      fillColor: "#800080",  // purple
-      color: "white",        // white border
-      weight: 1,
-      opacity: 1,
-      fillOpacity: 0.6
-    });
+    return L.circleMarker(latlng, busStopMarkerOptions);
   },
   onEachFeature: function (feature, layer) {
     if (feature.properties && feature.properties.StopName) {
-      layer.bindPopup("<b>Bus Stop Name:</b> " + feature.properties.StopName);
+      layer.bindPopup("<b>Bus Stop:</b> " + feature.properties.StopName);
     }
   }
 });
@@ -77,26 +79,7 @@ var busRoutesLayer = L.esri.featureLayer({
   }
 });
 
-// Apartments Layer
-var apartmentsLayer = L.geoJSON(null, {
-  pointToLayer: function (feature, latlng) {
-    return L.circleMarker(latlng, {
-      radius: 5,
-      fillColor: "purple",
-      color: "purple",
-      weight: 1,
-      opacity: 1,
-      fillOpacity: 0.6
-    });
-  },
-  onEachFeature: function (feature, layer) {
-    if (feature.properties && feature.properties.name) {
-      layer.bindPopup("<b>Apartment Name:</b> " + feature.properties.name);
-    }
-  }
-});
-
-// Foreign Share Layer
+// Foreign Share Layer (dynamic coloring)
 function getColor(d) {
   return d > 0.089 ? '#bd0026' :
          d > 0.066 ? '#fd8d3c' :
@@ -104,29 +87,51 @@ function getColor(d) {
                      '#3182bd';
 }
 
+function style(feature) {
+  return {
+    fillColor: getColor(feature.properties.foreign_share2016),
+    weight: 1,
+    opacity: 1,
+    color: 'black',
+    fillOpacity: 0.5
+  };
+}
+
 var foreignShareLayer = L.geoJSON(null, {
-  style: function(feature) {
-    var share = feature.properties.foreign_share2016;
-    return {
-      fillColor: getColor(share),
-      weight: 1,
-      color: 'black',
-      fillOpacity: 0.5
-    };
-  },
+  style: style,
   onEachFeature: function (feature, layer) {
-    if (feature.properties && feature.properties.foreign_share2016 !== undefined) {
-      layer.bindPopup("<b>Foreign Share (2016):</b> " + (feature.properties.foreign_share2016 * 100).toFixed(2) + "%");
+    if (feature.properties && feature.properties.foreign_share2016) {
+      layer.bindPopup(
+        "<b>Foreign Share (2016):</b> " + (feature.properties.foreign_share2016 * 100).toFixed(2) + "%"
+      );
     }
   }
 });
 
-// Load GeoJSON files
 fetch('foreign_share.geojson')
   .then(response => response.json())
   .then(data => {
     foreignShareLayer.addData(data);
   });
+
+// Apartments Layer
+var apartmentsLayer = L.geoJSON(null, {
+  pointToLayer: function (feature, latlng) {
+    return L.circleMarker(latlng, {
+      radius: 5,
+      fillColor: "blue",
+      color: "blue",
+      weight: 1,
+      opacity: 1,
+      fillOpacity: 0.6
+    });
+  },
+  onEachFeature: function (feature, layer) {
+    if (feature.properties && feature.properties.name) {
+      layer.bindPopup("<b>Apartment:</b> " + feature.properties.name);
+    }
+  }
+});
 
 fetch('Apartments.geojson')
   .then(response => response.json())
@@ -134,13 +139,7 @@ fetch('Apartments.geojson')
     apartmentsLayer.addData(data);
   });
 
-// Add layers to map
-busStopsLayer.addTo(map);
-busRoutesLayer.addTo(map);
-foreignShareLayer.addTo(map);
-apartmentsLayer.addTo(map);
-
-// Overlay Layer Control
+// Layer Control
 var overlayMaps = {
   "Bus Stops": busStopsLayer,
   "Bus Routes": busRoutesLayer,
@@ -148,18 +147,24 @@ var overlayMaps = {
   "Apartments": apartmentsLayer
 };
 
-var layerControl = L.control.layers(null, overlayMaps, {collapsed: false}).addTo(map);
+L.control.layers(null, overlayMaps, { collapsed: false }).addTo(map);
 
-// Fit all layers
+// Add all layers to map initially
+busStopsLayer.addTo(map);
+busRoutesLayer.addTo(map);
+foreignShareLayer.addTo(map);
+apartmentsLayer.addTo(map);
+
+// Fit bounds
 var allLayersGroup = L.featureGroup([busStopsLayer, busRoutesLayer, foreignShareLayer, apartmentsLayer]);
 map.fitBounds(allLayersGroup.getBounds());
 
-// Create dynamic legend for Foreign Share
-var legend = L.control({position: 'bottomleft'});
+// --- Dynamic Foreign Share Legend ---
+var foreignShareLegend = L.control({position: 'bottomleft'});
 
-legend.onAdd = function(map) {
+foreignShareLegend.onAdd = function (map) {
   var div = L.DomUtil.create('div', 'legend');
-  div.innerHTML += '<b>Foreign Share (2016)</b><br>';
+  div.innerHTML += "<b>Foreign Share (2016)</b><br>";
   div.innerHTML += '<i style="background: #bd0026"></i> > 8.9%<br>';
   div.innerHTML += '<i style="background: #fd8d3c"></i> 6.6% - 8.9%<br>';
   div.innerHTML += '<i style="background: #9ecae1"></i> 2.8% - 6.6%<br>';
@@ -167,32 +172,26 @@ legend.onAdd = function(map) {
   return div;
 };
 
-// Show/Hide legend based on Foreign Share layer
-function updateLegend() {
-  if (map.hasLayer(foreignShareLayer)) {
-    legend.addTo(map);
-  } else {
-    map.removeControl(legend);
-  }
-}
-
-// Initial check
-map.whenReady(updateLegend);
-
-// Update on layer toggle
+// Listen for layer add/remove events
 map.on('overlayadd', function(e) {
   if (e.name === "Foreign Share (2016)") {
-    updateLegend();
+    foreignShareLegend.addTo(map);
   }
 });
+
 map.on('overlayremove', function(e) {
   if (e.name === "Foreign Share (2016)") {
-    updateLegend();
+    map.removeControl(foreignShareLegend);
   }
 });
-</script>
 
-<!-- Bottom GitHub link -->
+// Always add legend if layer is active initially
+if (map.hasLayer(foreignShareLayer)) {
+  foreignShareLegend.addTo(map);
+}
+
+// Bottom GitHub Link
+var githubLink = `
 <div style="position: fixed; bottom: 20px; right: 20px; background: white; padding: 12px 20px; border-radius: 8px; font-size: 14px; box-shadow: 0 0 10px rgba(0,0,0,0.3); z-index: 1000;">
   <div style="text-align: center;">
     <div style="font-weight: bold; margin-bottom: 5px;">View source on GitHub</div>
@@ -200,7 +199,9 @@ map.on('overlayremove', function(e) {
       Built by Hannah Ward, Hu “Oliver” Zhao, Pedro Granados, Tolu Sokoya | View Project Repository
     </a>
   </div>
-</div>
+</div>`;
+document.body.insertAdjacentHTML('beforeend', githubLink);
+</script>
 
 </body>
 </html>
