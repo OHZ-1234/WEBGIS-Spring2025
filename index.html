@@ -34,13 +34,6 @@
       margin-right: 8px;
       opacity: 0.7;
     }
-    .opacity-control {
-      background: white;
-      padding: 10px;
-      border-radius: 5px;
-      font-size: 12px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.2);
-    }
   </style>
 </head>
 
@@ -48,25 +41,26 @@
 <div id="map"></div>
 
 <script>
+// Initialize the map
 var map = L.map('map').setView([30.61, -96.34], 13);
 
+// Add OpenStreetMap base layer
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
 
-// Custom purple marker for Bus Stops
-var purpleIcon = L.icon({
-  iconUrl: 'https://chart.googleapis.com/chart?chst=d_map_pin_icon&chld=bus|800080',
-  iconSize: [21, 34],
-  iconAnchor: [10, 34],
-  popupAnchor: [0, -34]
-});
-
-// Bus Stops Layer
+// Bus Stops as small purple circle markers
 var busStopsLayer = L.esri.featureLayer({
   url: 'https://services1.arcgis.com/qr14biwnHA6Vis6l/arcgis/rest/services/TAMU_Bus_Routes_with_STC_Visualization_of_Stop_Times_WFL1/FeatureServer/0',
   pointToLayer: function (geojson, latlng) {
-    return L.marker(latlng, { icon: purpleIcon });
+    return L.circleMarker(latlng, {
+      radius: 4,
+      fillColor: "#800080",  // purple
+      color: "white",        // white border
+      weight: 1,
+      opacity: 1,
+      fillOpacity: 0.6
+    });
   },
   onEachFeature: function (feature, layer) {
     if (feature.properties && feature.properties.StopName) {
@@ -160,7 +154,7 @@ var layerControl = L.control.layers(null, overlayMaps, {collapsed: false}).addTo
 var allLayersGroup = L.featureGroup([busStopsLayer, busRoutesLayer, foreignShareLayer, apartmentsLayer]);
 map.fitBounds(allLayersGroup.getBounds());
 
-// Legend
+// Create dynamic legend for Foreign Share
 var legend = L.control({position: 'bottomleft'});
 
 legend.onAdd = function(map) {
@@ -173,7 +167,7 @@ legend.onAdd = function(map) {
   return div;
 };
 
-// Only show legend when Foreign Share layer is ON
+// Show/Hide legend based on Foreign Share layer
 function updateLegend() {
   if (map.hasLayer(foreignShareLayer)) {
     legend.addTo(map);
@@ -185,7 +179,7 @@ function updateLegend() {
 // Initial check
 map.whenReady(updateLegend);
 
-// Update when layer toggled
+// Update on layer toggle
 map.on('overlayadd', function(e) {
   if (e.name === "Foreign Share (2016)") {
     updateLegend();
@@ -195,32 +189,6 @@ map.on('overlayremove', function(e) {
   if (e.name === "Foreign Share (2016)") {
     updateLegend();
   }
-});
-
-// Opacity Slider
-var opacityControl = L.control({position: 'topright'});
-opacityControl.onAdd = function(map) {
-  var div = L.DomUtil.create('div', 'opacity-control');
-  div.innerHTML = '<label><b>Layer Opacity</b><br><input id="opacitySlider" type="range" min="0" max="1" step="0.05" value="0.5"></label>';
-  return div;
-};
-opacityControl.addTo(map);
-
-document.addEventListener('DOMContentLoaded', function() {
-  var slider = document.getElementById('opacitySlider');
-  slider.addEventListener('input', function() {
-    var opacity = parseFloat(this.value);
-    apartmentsLayer.setStyle({fillOpacity: opacity});
-    foreignShareLayer.setStyle(function(feature) {
-      var share = feature.properties.foreign_share2016;
-      return {
-        fillColor: getColor(share),
-        weight: 1,
-        color: 'black',
-        fillOpacity: opacity
-      };
-    });
-  });
 });
 </script>
 
