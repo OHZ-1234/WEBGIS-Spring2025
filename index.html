@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>College Station Transit and Housing Map</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/esri-leaflet/dist/esri-leaflet.js"></script>
+  <style>
+
+    .legend {
+      background: white;
+      padding: 10px;
+      line-height: 1.5em;
+      color: #333;
+      border-radius: 5px;
+      font-size: 12px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    }
+    .legend i {
+      width: 12px;
+      height: 12px;
+      float: left;
+      margin-right: 8px;
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+<div id="map" style="height: 100vh;"></div>
+
+<script>
+  
+  var map = L.map('map').setView([30.61, -96.34], 13);
+
+  
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+
+  var smallIcon = L.icon({
+    iconUrl: 'https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png',
+    iconSize: [15, 24],
+    iconAnchor: [7, 24],
+    popupAnchor: [0, -24]
+  });
+
+  // --- Bus Stops Feature Layer
+  var busStopsLayer = L.esri.featureLayer({
+    url: 'https://services1.arcgis.com/qr14biwnHA6Vis6l/arcgis/rest/services/TAMU_Bus_Routes_with_STC_Visualization_of_Stop_Times_WFL1/FeatureServer/0',
+    pointToLayer: function (geojson, latlng) {
+      return L.marker(latlng, { icon: smallIcon });
+    },
+    onEachFeature: function (feature, layer) {
+      if (feature.properties && feature.properties.StopName) {
+        layer.bindPopup(
+          "<b>Bus Stop Name:</b> " + feature.properties.StopName
+        );
+      }
+    }
+  });
+
+  // --- Bus Routes Feature Layer
+  var busRoutesLayer = L.esri.featureLayer({
+    url: 'https://services1.arcgis.com/qr14biwnHA6Vis6l/arcgis/rest/services/TAMU_Bus_Routes_with_STC_Visualization_of_Stop_Times_WFL1/FeatureServer/1',
+    style: function () {
+      return { color: 'red', weight: 2 };
+    }
+  });
+
+  // --- Foreign Share GeoJSON
+  var foreignShareLayer = L.geoJSON(null, {
+    style: { color: 'purple', weight: 1, fillOpacity: 0.4 },
+    onEachFeature: function (feature, layer) {
+      if (feature.properties && feature.properties.foreign_share2016) {
+        layer.bindPopup(
+          "<b>Foreign Share 2016:</b> " + (feature.properties.foreign_share2016 * 100).toFixed(2) + "%"
+        );
+      }
+    }
+  });
+
+  fetch('foreign_share.geojson')
+    .then(response => response.json())
+    .then(data => {
+      foreignShareLayer.addData(data);
+    });
+
+  // --- Apartments GeoJSON
+  var apartmentsLayer = L.geoJSON(null, {
+    pointToLayer: function (feature, latlng) {
+      return L.circleMarker(latlng, {
+        radius: 5,
+        fillColor: "green",
+        color: "green",
+        weight: 1,
+        opacity: 1,
+        fillOpacity: 0.6
+      });
+    },
+    onEachFeature: function (feature, layer) {
+      if (feature.properties && feature.properties.name) {
+        layer.bindPopup(
+          "<b>Apartment Name:</b> " + feature.properties.name
+        );
+      }
+    }
+  });
+
+  fetch('Apartments.geojson')
+    .then(response => response.json())
+    .then(data => {
+      apartmentsLayer.addData(data);
+    });
+
+
+  var overlayMaps = {
+    "Bus Stops": busStopsLayer,
+    "Bus Routes": busRoutesLayer,
+    "Foreign Share (2016)": foreignShareLayer,
+    "Apartments": apartmentsLayer
+  };
+
+  L.control.layers(null, overlayMaps, { collapsed: false }).addTo(map);
+
+
+  busStopsLayer.addTo(map);
+  busRoutesLayer.addTo(map);
+  foreignShareLayer.addTo(map);
+  apartmentsLayer.addTo(map);
+
+
+  var legend = L.control({position: 'bottomleft'});
+
+  legend.onAdd = function (map) {
+    var div = L.DomUtil.create('div', 'legend');
+    div.innerHTML += "<i style='background: blue'></i> Bus Stops<br>";
+    div.innerHTML += "<i style='background: red'></i> Bus Routes<br>";
+    div.innerHTML += "<i style='background: purple'></i> Foreign Share<br>";
+    div.innerHTML += "<i style='background: green'></i> Apartments<br>";
+    return div;
+  };
+
+  legend.addTo(map);
+
+</script>
+
+</body>
+</html>
