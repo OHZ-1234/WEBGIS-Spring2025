@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>College Station Bus Map</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/esri-leaflet/dist/esri-leaflet.js"></script>
+</head>
+<body>
+<div id="map" style="height: 90vh;"></div>
+
+<script>
+  var map = L.map('map').setView([30.61, -96.34], 13);
+
+  // base map
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  // TAMU BusStops
+  var busStops = L.esri.featureLayer({
+    url: 'https://services1.arcgis.com/qr14biwnHA6Vis6l/arcgis/rest/services/TAMU_Bus_Routes_with_STC_Visualization_of_Stop_Times_WFL1/FeatureServer/0',
+    style: function () {
+      return { color: 'blue' };
+    }
+  }).addTo(map);
+
+  // TAMU BusRoutes
+  var busRoutes = L.esri.featureLayer({
+    url: 'https://services1.arcgis.com/qr14biwnHA6Vis6l/arcgis/rest/services/TAMU_Bus_Routes_with_STC_Visualization_of_Stop_Times_WFL1/FeatureServer/1',
+    style: function () {
+      return { color: 'red' };
+    }
+  }).addTo(map);
+
+</script>
+
+</body>
+</html>
