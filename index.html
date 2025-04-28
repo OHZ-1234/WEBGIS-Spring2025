@@ -190,7 +190,8 @@ if (map.hasLayer(foreignShareLayer)) {
   foreignShareLegend.addTo(map);
 }
 
-// --- Bottom Right GitHub Link ---
+<!-- --- Bottom Right GitHub Link --- -->
+<script>
 var githubLink = `
 <div style="position: fixed; bottom: 20px; right: 20px; background: white; padding: 12px 20px; border-radius: 8px; font-size: 14px; box-shadow: 0 0 10px rgba(0,0,0,0.3); z-index: 1000;">
   <div style="text-align: center;">
@@ -200,8 +201,12 @@ var githubLink = `
     </a>
   </div>
 </div>`;
-document.body.insertAdjacentHTML('beforeend', githubLink);
+
+document.addEventListener('DOMContentLoaded', function () {
+  document.body.insertAdjacentHTML('beforeend', githubLink);
+});
 </script>
 
 </body>
 </html>
+
