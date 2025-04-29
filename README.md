@@ -3,3 +3,10 @@
 # Our semester project on Home2Hub: Connecting Housing to Transit in College Station
 # This group project is done by the wonderful collaboration of Hannah Ward, Pedro Granados, Tolu Sokoya, and me. Everybody in the team has coded for this projects.
 # I wanna say thank y'all very much for make it happens! --- Hu "Oliver" Zhao, Team Lead, Ph.D. in progress at CVEN
+# ## Live Map
+[Click here to view the interactive map](https://ohz-1234.github.io/WEBGIS-Spring2025/)
+## Data Sources
+- TAMU Bus Routes and Stops
+- Apartments Data
+- Opportunity Atlas - Foreign Share
+- US Census Blocks Population Data
